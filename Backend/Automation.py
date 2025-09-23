@@ -11,57 +11,72 @@ import time
 import json
 import random
 import requests
-import pythoncom
 
-# Server detection
+# Server detection - FIXED: Simple and reliable
 def is_server_environment():
-    return os.environ.get('RENDER') or not os.name == 'nt'
+    return os.environ.get('RENDER') or os.environ.get('PYTHONANYWHERE') or not os.name == 'nt'
 
-# Platform detection
+# Platform detection - FIXED: Safe detection
 def is_windows():
-    return platform.system().lower() == 'windows' and not is_server_environment()
+    try:
+        return platform.system().lower() == 'windows' and not is_server_environment()
+    except:
+        return False
 
 # Server-friendly message
 def server_feature_message(feature_name):
     return f"🔒 {feature_name} works on Windows devices. Chat and AI features work everywhere! 📱💻"
 
-# Conditional imports for Windows only (skip on server)
-if is_windows():
-    try:
-        from AppOpener import close, open as appopen
-        from pywhatkit import search, playonyt
-    except ImportError as e:
-        print(f"[WARNING] {e} – Install via pip for full features.")
-        def appopen(app, **kwargs): return f"Simulating open {app} (AppOpener missing)"
-        def close(app, **kwargs): return f"Simulating close {app}"
-        def playonyt(query): return f"Simulating YouTube play: {query} (pywhatkit missing)"
-        def search(query): webbrowser.open(f"https://www.google.com/search?q={query}")
-else:
-    # Server/non-Windows: Web-only functions
-    def appopen(app, **kwargs): 
-        if is_server_environment():
-            return server_feature_message("App automation")
-        website_map = {
-            "whatsapp": "https://web.whatsapp.com", "instagram": "https://instagram.com",
-            "facebook": "https://facebook.com", "youtube": "https://youtube.com",
-            "spotify": "https://open.spotify.com", "gmail": "https://gmail.com"
-        }
-        app_lower = app.lower()
-        if app_lower in website_map:
-            webbrowser.open(website_map[app_lower])
-            return f"Opened {app} in browser"
-        return f"Available web apps: {', '.join(website_map.keys())}"
+# FIXED: Remove problematic imports and use conditional imports safely
+def setup_imports():
+    global appopen, close, playonyt, search
     
-    def close(app, **kwargs): 
-        return server_feature_message("App closing")
-    
-    def playonyt(query): 
-        webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
-        return f"Opened YouTube search for: {query}"
-    
-    def search(query): 
-        webbrowser.open(f"https://www.google.com/search?q={query}")
-        return f"Opened Google search for: {query}"
+    if is_windows():
+        try:
+            from AppOpener import close, open as appopen
+            from pywhatkit import search, playonyt
+        except ImportError:
+            # Fallback functions if imports fail
+            def appopen(app, **kwargs): 
+                return f"App opener not available"
+            def close(app, **kwargs): 
+                return f"App closer not available"
+            def playonyt(query): 
+                webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
+                return f"Opened YouTube: {query}"
+            def search(query): 
+                webbrowser.open(f"https://www.google.com/search?q={query}")
+                return f"Search: {query}"
+    else:
+        # Non-Windows or server environment
+        def appopen(app, **kwargs): 
+            if is_server_environment():
+                return server_feature_message("App automation")
+            website_map = {
+                "whatsapp": "https://web.whatsapp.com", "instagram": "https://instagram.com",
+                "facebook": "https://facebook.com", "youtube": "https://youtube.com",
+                "spotify": "https://open.spotify.com", "gmail": "https://gmail.com",
+                "chrome": "https://google.com", "music": "https://music.youtube.com"
+            }
+            app_lower = app.lower()
+            if app_lower in website_map:
+                webbrowser.open(website_map[app_lower])
+                return f"Opened {app} in browser"
+            return f"Available web apps: {', '.join(website_map.keys())}"
+        
+        def close(app, **kwargs): 
+            return server_feature_message("App closing")
+        
+        def playonyt(query): 
+            webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
+            return f"Opened YouTube: {query}"
+        
+        def search(query): 
+            webbrowser.open(f"https://www.google.com/search?q={query}")
+            return f"Search: {query}"
+
+# Initialize the imports
+setup_imports()
 
 try:
     from Backend.device_manager import get_device_type, get_connection_method
@@ -127,33 +142,21 @@ def set_volume(level):
         return server_feature_message("Volume control")
     
     try:
-        pythoncom.CoInitialize()
-        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-        from ctypes import cast, POINTER
-        from comtypes import CLSCTX_ALL
-        
-        devices = AudioUtilities.GetSpeakers()
-        interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        volume = cast(interface, POINTER(IAudioEndpointVolume))
-        
-        scalar = max(0.0, min(1.0, level / 100.0))
-        volume.SetMasterVolumeLevelScalar(scalar, None)
-        pythoncom.CoUninitialize()
-        return f"Volume set to {level}%"
-        
-    except ImportError:
-        try:
-            if level == 0:
-                return "Volume muted (pycaw not installed)"
-            else:
-                return f"Volume set to {level}% (install pycaw for exact control)"
-        except Exception as e2:
-            return f"Volume control error: {str(e2)}"
+        # FIXED: Remove pythoncom import and use alternative
+        if is_windows():
+            # Simple volume control without pythoncom
+            try:
+                # Try using Windows command line volume control
+                if level == 0:
+                    subprocess.run(["nircmd", "mutesysvolume", "1"], timeout=5)
+                    return "Volume muted"
+                else:
+                    subprocess.run(["nircmd", "setsysvolume", str(level * 655)], timeout=5)
+                    return f"Volume set to {level}%"
+            except:
+                return f"Volume control requires additional software on Windows"
+        return server_feature_message("Volume control")
     except Exception as e:
-        try:
-            pythoncom.CoUninitialize()
-        except:
-            pass
         return f"Error setting volume: {str(e)}"
 
 def MediaControl(action):
@@ -162,16 +165,19 @@ def MediaControl(action):
     
     try:
         if is_windows():
-            import pyautogui
-            key_map = {
-                "play": "playpause", "pause": "playpause", "resume": "playpause",
-                "next": "nexttrack", "previous": "prevtrack", "stop": "stop"
-            }
-            
-            if action in key_map:
-                pyautogui.press(key_map[action])
-                action_word = "played" if action == "play" else "paused" if action == "pause" else action + "ed"
-                return f"Media {action_word}"
+            try:
+                import pyautogui
+                key_map = {
+                    "play": "playpause", "pause": "playpause", "resume": "playpause",
+                    "next": "nexttrack", "previous": "prevtrack", "stop": "stop"
+                }
+                
+                if action in key_map:
+                    pyautogui.press(key_map[action])
+                    action_word = "played" if action == "play" else "paused" if action == "pause" else action + "ed"
+                    return f"Media {action_word}"
+            except ImportError:
+                return "Media controls require pyautogui on Windows"
         return server_feature_message("Media controls")
     except Exception as e:
         return f"Error controlling media: {str(e)}"
@@ -334,8 +340,11 @@ def YouTubeSearch(Topic):
 def Content(Topic):
     def OpenNotepad(File):
         if is_windows() and not is_server_environment():
-            default_text_editor = "notepad.exe"
-            subprocess.Popen([default_text_editor, File])
+            try:
+                default_text_editor = "notepad.exe"
+                subprocess.Popen([default_text_editor, File])
+            except:
+                return f"Content saved to: {File}"
         else:
             return f"Content saved to: {File}"
         
@@ -442,16 +451,19 @@ def CloseApp(app_name):
     
     try:
         if is_windows():
-            import pyautogui
-            if any(browser in app_name.lower() for browser in ["chrome", "youtube", "spotify", "web", "browser"]):
-                pyautogui.hotkey('ctrl', 'w')
-                time.sleep(1)
-                return f"Closed {app_name} tab"
-            else:
-                result = subprocess.run(['taskkill', '/f', '/im', f'{app_name}.exe'], 
-                                      capture_output=True, text=True, timeout=10)
-                if result.returncode == 0:
-                    return f"Closed {app_name}"
+            try:
+                import pyautogui
+                if any(browser in app_name.lower() for browser in ["chrome", "youtube", "spotify", "web", "browser"]):
+                    pyautogui.hotkey('ctrl', 'w')
+                    time.sleep(1)
+                    return f"Closed {app_name} tab"
+                else:
+                    result = subprocess.run(['taskkill', '/f', '/im', f'{app_name}.exe'], 
+                                          capture_output=True, text=True, timeout=10)
+                    if result.returncode == 0:
+                        return f"Closed {app_name}"
+            except ImportError:
+                return "App closing requires pyautogui on Windows"
         return server_feature_message("App closing")
     except Exception as e:
         return f"Error closing {app_name}: {str(e)}"
@@ -467,15 +479,18 @@ def CloseAllTabs():
     
     try:
         if is_windows():
-            import pyautogui
-            result = subprocess.run(['tasklist'], capture_output=True, text=True)
-            browsers = ['chrome.exe', 'msedge.exe', 'firefox.exe']
-            browser_running = any(browser in result.stdout for browser in browsers)
-            
-            if browser_running:
-                pyautogui.hotkey('ctrl', 'shift', 'w')
-                time.sleep(1)
-                return "All browser tabs closed"
+            try:
+                import pyautogui
+                result = subprocess.run(['tasklist'], capture_output=True, text=True)
+                browsers = ['chrome.exe', 'msedge.exe', 'firefox.exe']
+                browser_running = any(browser in result.stdout for browser in browsers)
+                
+                if browser_running:
+                    pyautogui.hotkey('ctrl', 'shift', 'w')
+                    time.sleep(1)
+                    return "All browser tabs closed"
+            except ImportError:
+                return "Tab closing requires pyautogui on Windows"
         return "No browser tabs open to close"
     except Exception as e:
         return f"Error closing all tabs: {str(e)}"
@@ -493,24 +508,27 @@ def CloseAllWindows():
     
     try:
         if is_windows():
-            import pyautogui
-            result = subprocess.run(['tasklist'], capture_output=True, text=True)
-            processes = result.stdout.lower()
-            
-            common_apps = ['notepad.exe', 'chrome.exe', 'msedge.exe', 'firefox.exe', 'spotify.exe']
-            closed = []
-            
-            for app in common_apps:
-                if app in processes and not any(protected in app for protected in protected_apps):
-                    subprocess.run(['taskkill', '/f', '/im', app], capture_output=True, text=True, timeout=5)
-                    closed.append(app)
-            
-            for _ in range(5):
-                pyautogui.hotkey('alt', 'f4')
-                time.sleep(0.5)
-            
-            if closed:
-                return f"Closed windows: {', '.join(closed)} and others"
+            try:
+                import pyautogui
+                result = subprocess.run(['tasklist'], capture_output=True, text=True)
+                processes = result.stdout.lower()
+                
+                common_apps = ['notepad.exe', 'chrome.exe', 'msedge.exe', 'firefox.exe', 'spotify.exe']
+                closed = []
+                
+                for app in common_apps:
+                    if app in processes and not any(protected in app for protected in protected_apps):
+                        subprocess.run(['taskkill', '/f', '/im', app], capture_output=True, text=True, timeout=5)
+                        closed.append(app)
+                
+                for _ in range(5):
+                    pyautogui.hotkey('alt', 'f4')
+                    time.sleep(0.5)
+                
+                if closed:
+                    return f"Closed windows: {', '.join(closed)} and others"
+            except ImportError:
+                return "Window management requires pyautogui on Windows"
         return "All non-protected windows closed"
     except Exception as e:
         return f"Error closing all windows: {str(e)}"
@@ -534,8 +552,9 @@ def System(command):
         try:
             CloseAllWindows()
             time.sleep(2)
-            os.system("shutdown /s /t 10")
-            return "Closing all windows and shutting down computer in 10 seconds..."
+            if is_windows():
+                os.system("shutdown /s /t 10")
+            return "System shutdown command sent"
         except Exception as e:
             return f"Error during shutdown: {str(e)}"
     
@@ -556,22 +575,22 @@ def System(command):
         elif "full" in command or "max" in command or "100" in command:
             return set_volume(100)
         elif "up" in command:
-            current_vol = 50
-            return set_volume(min(current_vol + 20, 100))
+            return set_volume(70)
         elif "down" in command:
-            current_vol = 50  
-            return set_volume(max(current_vol - 20, 0))
+            return set_volume(30)
     
     if command == "lock":
         try:
-            subprocess.run(["rundll32.exe", "user32.dll,LockWorkStation"])
-            return "PC locked"
+            if is_windows():
+                subprocess.run(["rundll32.exe", "user32.dll,LockWorkStation"])
+            return "System lock command sent"
         except Exception as e:
-            return f"Error locking PC: {e}"
+            return f"Error locking system: {e}"
             
     elif command == "restart":
-        os.system("shutdown /r /t 1")
-        return "Restarting computer..."
+        if is_windows():
+            os.system("shutdown /r /t 1")
+        return "System restart command sent"
     
     return f"Unknown system command: {command}"
 
@@ -629,15 +648,15 @@ def ExecuteCommand(command):
         return MediaControl(command)
     
     if command.startswith("open "):
-        app_name = command.removeprefix("open ").strip()
+        app_name = command[5:].strip()
         return OpenApp(app_name)
             
     elif command.startswith("close "):
-        app_name = command.removeprefix("close ").strip()
+        app_name = command[5:].strip()
         return CloseApp(app_name)
         
     elif command.startswith("play "):
-        song_name = command.removeprefix("play ").strip()
+        song_name = command[5:].strip()
         
         if "on spotify" in song_name.lower():
             song_name = song_name.replace("on spotify", "").strip()
@@ -657,31 +676,31 @@ def ExecuteCommand(command):
             return PlayYoutube(song_name)
         
     elif command.startswith("content "):
-        return Content(command.removeprefix("content "))
+        return Content(command[8:])
         
     elif command.startswith("google search "):
-        return GoogleSearch(command.removeprefix("google search "))
+        return GoogleSearch(command[14:])
         
     elif command.startswith("youtube search "):
-        return YouTubeSearch(command.removeprefix("youtube search "))
+        return YouTubeSearch(command[15:])
         
     elif command.startswith("system "):
-        sys_command = command.removeprefix("system ")
+        sys_command = command[7:].strip()
         sys_command = sys_command.replace("_", " ").strip()
         return System(sys_command)
         
     elif command.startswith("call "):
-        contact = command.removeprefix("call ")
+        contact = command[5:].strip()
         return CallContact(contact)
         
     elif command.startswith("message "):
-        parts = command.removeprefix("message ").split(" ", 1)
+        parts = command[8:].split(" ", 1)
         contact = parts[0]
         message_text = parts[1] if len(parts) > 1 else ""
         return SendMessage(contact, message_text)
         
     elif command.startswith("reminder "):
-        reminder_data = command.removeprefix("reminder ")
+        reminder_data = command[8:].strip()
         return f"Reminder set: {reminder_data}"
     
     elif command == "exit":

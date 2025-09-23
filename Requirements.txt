@@ -8,12 +8,7 @@ requests
 beautifulsoup4
 
 # Chatbot and automation
-AppOpener
-pywhatkit
-keyboard
 pygame
-pyautogui
-pycaw
 comtypes
 
 # Web framework

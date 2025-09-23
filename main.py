@@ -192,7 +192,7 @@ def speak_automation_feedback(action_result, voice):
 
 # ---------------------- FLASK SETUP ---------------------- #
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:3000", "https://zyra-frontend.onrender.com"]}})
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Cache for deduplication
 response_cache = {}

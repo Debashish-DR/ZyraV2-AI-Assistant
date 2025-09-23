@@ -1,0 +1,86 @@
+
+# Core AI and APIs
+cohere
+groq
+mtranslate
+edge-tts
+requests
+beautifulsoup4
+
+# Chatbot and automation
+AppOpener
+pywhatkit
+keyboard
+pygame
+pyautogui
+pycaw
+comtypes
+
+# Web framework
+flask
+flask-cors
+
+# Utilities
+pillow
+python-dotenv
+
+#render deployment
+
+pymongo==4.5.0
+PyJWT==2.8.0
+bcrypt==4.0.1
+gunicorn==21.2.0
+
+
+
+
+#MongoDb password - DCODk0r5ACdnOekq
+#URI = mongodb+srv://zyrauser:Deba123@cluster0.jzsoiih.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+#================================================================================
+
+# # Core AI and APIs
+# cohere
+# groq
+# mtranslate
+# edge-tts
+
+# # Chatbot and automation
+# AppOpener
+# pywhatkit
+# keyboard
+# pygame
+# PyQt5
+
+# # Web scraping and automation
+# beautifulsoup4
+# requests
+# selenium
+# webdriver-manager
+# googlesearch-python
+
+# # Utilities
+# pillow
+# rich
+# python-dotenv
+
+
+
+#================================================================================
+
+# python-dotenv
+# groq
+# AppOpener
+# pywhatkit
+# bs4
+# pillow
+# rich
+# requests
+# keyboard
+# cohere
+# googlesearch-python
+# selenium
+# mtranslate
+# pygame
+# edge-tts
+# PyQt5
+# webdriver-manager

@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+.min-h-screen {
+  background: black;
+}
+
+.rounded-lg {
+  border-radius: 0.75rem;
+}
+
+.shadow-2xl {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.transition {
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.chat-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: linear-gradient(
+    to bottom,
+    rgba(31, 41, 55, 0.9),
+    rgba(31, 41, 55, 0)
+  );
+  pointer-events: none;
+}
+
+.chat-container {
+  background: #1f2937; /* bg-gray-800 */
+  border-radius: 12px;
+  position: relative;
+
+  /* Feather only top & bottom */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 5%,
+    black 85%,
+    transparent
+  );
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: cover;
+
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black 5%,
+    black 95%,
+    transparent
+  );
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: cover;
+}
+
+/* Add to your App.css */
+.gif-blend {
+  position: relative;
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  filter: brightness(1.1) contrast(0.9);
+}
+
+.gif-blend-container {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.1) 0%,
+    rgba(139, 92, 246, 0.1) 100%
+  );
+  border-radius: 20px;
+  padding: 10px;
+}
+
+/* Add to your CSS file */
+.scrollbar-professional {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6, 182, 212, 0.8) transparent;
+}
+
+.scrollbar-professional::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-professional::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 10px;
+}
+
+.scrollbar-professional::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    to bottom,
+    rgba(6, 182, 212, 0.8),
+    rgba(59, 130, 246, 0.8)
+  );
+  border-radius: 10px;
+}
+
+.scrollbar-professional::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    to bottom,
+    rgba(6, 182, 212, 1),
+    rgba(59, 130, 246, 1)
+  );
+}
+
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+.min-h-screen {
+  background: black;
+}
+
+.rounded-lg {
+  border-radius: 0.75rem;
+}
+
+.shadow-2xl {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.transition {
+  transition: all 0.3s ease;
+}
+/* Slim professional scrollbar */
+/* ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+} */
+
+/* Transparency gradient for smooth scrolling */
+
+/* Transparency gradient for smooth scrolling */
+/* .chat-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: linear-gradient(
+    to bottom,
+    rgba(31, 41, 55, 0.9),
+    rgba(31, 41, 55, 0)
+  );
+  pointer-events: none;
+} */

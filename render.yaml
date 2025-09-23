@@ -10,7 +10,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.9.0
 
-  - type: web
+  - type: static
     name: zyra-frontend
     plan: free
     branch: main

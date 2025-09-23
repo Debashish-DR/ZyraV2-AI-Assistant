@@ -1,7 +1,6 @@
 import cohere
-from AppOpener import close, open as appopen
+import platform  # ADDED for platform detection
 from webbrowser import open as webopen
-from pywhatkit import search, playonyt
 from dotenv import dotenv_values
 from bs4 import BeautifulSoup
 from groq import Groq
@@ -16,6 +15,34 @@ import random
 import requests
 import pythoncom  # ADDED for COM initialization
 
+# ADDED: Platform detection
+def is_windows():
+    return platform.system().lower() == 'windows'
+
+# ADDED: Conditional imports for Windows only
+if is_windows():
+    try:
+        from AppOpener import close, open as appopen
+        from pywhatkit import search, playonyt
+    except ImportError as e:
+        print(f"[WARNING] {e} – Install via pip for full features.")
+        def appopen(app, **kwargs): return f"Simulating open {app} (AppOpener missing)"
+        def close(app, **kwargs): return f"Simulating close {app}"
+        def playonyt(query): return f"Simulating YouTube play: {query} (pywhatkit missing)"
+        def search(query): webbrowser.open(f"https://www.google.com/search?q={query}")
+else:
+    # ADDED: Mock functions for non-Windows platforms
+    def appopen(app, **kwargs): 
+        return f"🔒 Windows-only feature: App automation works on Windows devices. Chat and AI features work everywhere! 📱💻"
+    def close(app, **kwargs): 
+        return f"🔒 Windows-only feature: App automation works on Windows devices. Chat and AI features work everywhere! 📱💻"
+    def playonyt(query): 
+        webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
+        return f"Opened YouTube search for: {query}"
+    def search(query): 
+        webbrowser.open(f"https://www.google.com/search?q={query}")
+        return f"Opened Google search for: {query}"
+
 try:
     from Backend.device_manager import get_device_type, get_connection_method
 except ImportError:
@@ -23,16 +50,6 @@ except ImportError:
         return "pc"
     def get_connection_method():
         return "none"
-
-try:
-    from AppOpener import close, open as appopen
-    from pywhatkit import search, playonyt
-except ImportError as e:
-    print(f"[WARNING] {e} – Install via pip for full features.")
-    def appopen(app, **kwargs): return f"Simulating open {app} (AppOpener missing)"
-    def close(app, **kwargs): return f"Simulating close {app}"
-    def playonyt(query): return f"Simulating YouTube play: {query} (pywhatkit missing)"
-    def search(query): webbrowser.open(f"https://www.google.com/search?q={query}")
 
 env_vars = dotenv_values(".env")
 GroqAPIKey = env_vars.get("GroqAPIKey")
@@ -85,6 +102,10 @@ def get_phone_number(contact_name):
     return None
 
 def set_volume(level):
+    # ADDED: Platform check for volume control
+    if not is_windows():
+        return "🔒 Volume control available on Windows devices. Chat and AI features work everywhere! 📱💻"
+    
     try:
         # Initialize COM for this thread
         pythoncom.CoInitialize()  # ADDED: Proper COM initialization
@@ -279,8 +300,12 @@ def MobilePlayMusic(song_name=""):
 
 def PlayYoutube(query):
     try:
-        playonyt(query)
-        return f"Playing {query} on YouTube"
+        if is_windows():
+            playonyt(query)
+            return f"Playing {query} on YouTube"
+        else:
+            webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
+            return f"Opened YouTube search for: {query}"
     except Exception as e:
         return f"Error playing YouTube: {str(e)}"
 
@@ -295,7 +320,10 @@ def PlayMusic(song_name=""):
         
         if not song_name or "random" in song_name.lower():
             # FIXED: Use proper Microsoft Edge command
-            os.system('start msedge "https://music.youtube.com/watch?v=uBcdZB3MoCM&list=RDAMVMuBcdZB3MoCM"')
+            if is_windows():
+                os.system('start msedge "https://music.youtube.com/watch?v=uBcdZB3MoCM&list=RDAMVMuBcdZB3MoCM"')
+            else:
+                webbrowser.open("https://music.youtube.com")
             return "Playing music on YouTube Music"
         else:
             # FIXED: Use webopen instead of playonyt for better reliability
@@ -303,7 +331,8 @@ def PlayMusic(song_name=""):
             webopen(search_url)
             time.sleep(3)  # Wait for page to load
             # Simulate pressing Enter to play first result
-            pyautogui.press('enter')
+            if is_windows():
+                pyautogui.press('enter')
             return f"Playing {song_name} on YouTube Music"
             
     except Exception as e:
@@ -321,7 +350,8 @@ def PlaySpotify(song_name=""):
         if not song_name or "music" in song_name.lower():
             webopen("https://open.spotify.com")
             time.sleep(5)
-            pyautogui.press('space')
+            if is_windows():
+                pyautogui.press('space')
             return "Playing music on Spotify"
         else:
             return PlayYoutube(song_name)
@@ -340,8 +370,18 @@ def YouTubeSearch(Topic):
 
 def Content(Topic):
     def OpenNotepad(File):
-        default_text_editor = "notepad.exe"
-        subprocess.Popen([default_text_editor, File])
+        if is_windows():
+            default_text_editor = "notepad.exe"
+            subprocess.Popen([default_text_editor, File])
+        else:
+            # For non-Windows, try to open with default text editor
+            try:
+                subprocess.Popen(['xdg-open', File])  # Linux
+            except:
+                try:
+                    subprocess.Popen(['open', File])  # macOS
+                except:
+                    return "Could not open text editor on this platform"
         
     def ContentWriterAI(prompt):
         if not client:
@@ -388,9 +428,37 @@ def OpenApp(app_name):
     app_name = app_name.lower().strip()
     
     if "youtube music" in app_name or "yt music" in app_name:
-        os.system('start msedge "https://music.youtube.com"')
-        return "Opened YouTube Music in Microsoft Edge"
+        if is_windows():
+            os.system('start msedge "https://music.youtube.com"')
+        else:
+            webbrowser.open("https://music.youtube.com")
+        return "Opened YouTube Music"
     
+    # ADDED: Platform check for app automation
+    if not is_windows():
+        website_map = {
+            "whatsapp": "https://web.whatsapp.com",
+            "instagram": "https://www.instagram.com",
+            "facebook": "https://www.facebook.com",
+            "telegram": "https://web.telegram.org",
+            "spotify": "https://open.spotify.com",
+            "netflix": "https://www.netflix.com",
+            "twitter": "https://twitter.com",
+            "linkedin": "https://www.linkedin.com",
+            "youtube": "https://www.youtube.com",
+            "gmail": "https://mail.google.com",
+            "chrome": "https://www.google.com",
+            "discord": "https://discord.com/app",
+            "youtube music": "https://music.youtube.com",
+            "yt music": "https://music.youtube.com"
+        }
+        
+        if app_name in website_map:
+            webopen(website_map[app_name])
+            return f"Opened {app_name}"
+        return "🔒 App automation works on Windows devices. Chat and AI features work everywhere! 📱💻"
+    
+    # Windows-specific app opening
     try:
         result = appopen(app_name, throw_error=True, match_closest=True)
         if result:
@@ -427,6 +495,10 @@ def CloseApp(app_name):
     if device_type == "mobile":
         return "Close app not supported on mobile"
     
+    # ADDED: Platform check for app closing
+    if not is_windows():
+        return "🔒 App automation works on Windows devices. Chat and AI features work everywhere! 📱💻"
+    
     protected_apps = ["python", "vscode", "pycharm", "cmd", "terminal", "assistant", "zyra", "main"]
     
     if any(protected in app_name.lower() for protected in protected_apps):
@@ -454,6 +526,10 @@ def CloseAllTabs():
     if device_type == "mobile":
         return "Close all tabs not supported on mobile"
     
+    # ADDED: Platform check for tab closing
+    if not is_windows():
+        return "🔒 App automation works on Windows devices. Chat and AI features work everywhere! 📱💻"
+    
     try:
         result = subprocess.run(['tasklist'], capture_output=True, text=True)
         browsers = ['chrome.exe', 'msedge.exe', 'firefox.exe']
@@ -474,6 +550,10 @@ def CloseAllWindows():
     
     if device_type == "mobile":
         return "Close all windows not supported on mobile"
+    
+    # ADDED: Platform check for window closing
+    if not is_windows():
+        return "🔒 App automation works on Windows devices. Chat and AI features work everywhere! 📱💻"
     
     protected_apps = ["python", "vscode", "pycharm", "cmd", "terminal", "assistant", "zyra", "main"]
     
@@ -504,6 +584,11 @@ def System(command):
     device_type = get_device_type()
     if device_type == "mobile":
         return "System commands not supported on mobile"
+    
+    # ADDED: Platform check for system commands
+    if not is_windows():
+        if any(cmd in command.lower() for cmd in ['close', 'open', 'volume', 'mute', 'shutdown', 'lock', 'restart']):
+            return "🔒 System automation works on Windows devices. Chat and AI features work everywhere! 📱💻"
     
     command = command.strip().lower()
     
@@ -581,10 +666,12 @@ def SendMessage(contact, message_text=""):
         
         webopen(whatsapp_url)
         time.sleep(4)
-        pyautogui.press('enter')
+        if is_windows():
+            pyautogui.press('enter')
         time.sleep(2)
         
-        pyautogui.hotkey('ctrl', 'w')
+        if is_windows():
+            pyautogui.hotkey('ctrl', 'w')
         
         return f"Message sent to {contact}"
         

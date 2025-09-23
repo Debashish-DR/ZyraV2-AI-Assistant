@@ -14,7 +14,6 @@ comtypes
 # Web framework
 flask
 flask-cors
-
 # Utilities
 pillow
 python-dotenv
@@ -25,6 +24,7 @@ pymongo==4.5.0
 PyJWT==2.8.0
 bcrypt==4.0.1
 gunicorn==21.2.0
+speechrecognition==3.10.0
 
 
 

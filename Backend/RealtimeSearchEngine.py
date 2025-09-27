@@ -1,5 +1,6 @@
+import os
+import json
 from groq import Groq
-from json import load, dump
 import datetime
 from dotenv import dotenv_values
 import requests
@@ -24,12 +25,24 @@ System = f"""You are {Assistantname}, an AI assistant with real-time information
 
 User: {Username}. Provide direct answers only."""
 
-try:
-    with open(r"Data/ChatLog.json", "r") as f:
-        messages = load(f)
-except:
-    with open(r"Data/ChatLog.json", "w") as f:
-        dump([],f)
+# FIXED: Safe file reading with folder creation
+def load_messages():
+    try:
+        os.makedirs("Data", exist_ok=True)
+        chatlog_path = "Data/ChatLog.json"
+        if os.path.exists(chatlog_path):
+            with open(chatlog_path, "r") as f:
+                return json.load(f)
+        else:
+            with open(chatlog_path, "w") as f:
+                json.dump([], f)
+            return []
+    except Exception as e:
+        print(f"Error loading messages: {e}")
+        return []
+
+# FIXED: Initialize messages safely
+messages = load_messages()
 
 def get_direct_answer(query):
     try:
@@ -114,7 +127,7 @@ def Information():
     return data
 
 def RealtimeSearchEngine(prompt):
-    global SystemChatBot, messages
+    global messages
     
     if client is None:
         return "Groq API not configured."
@@ -123,18 +136,13 @@ def RealtimeSearchEngine(prompt):
     if direct_answer:
         return direct_answer
     
-    # FIXED: Load and clean messages - remove date/id properties
-    with open(r"Data/ChatLog.json", "r") as f:
-        messages = load(f)
-    
-    # Clean messages - only keep role/content
+    # FIXED: Load messages safely
     clean_messages = []
     for msg in messages:
         if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
             clean_msg = {"role": msg["role"], "content": msg["content"]}
             clean_messages.append(clean_msg)
     
-    # Only add user message
     clean_messages.append({"role": "user", "content": prompt})
     
     search_data = DuckDuckGoSearch(prompt)
@@ -173,11 +181,14 @@ def RealtimeSearchEngine(prompt):
             if phrase in Answer.lower():
                 Answer = Answer.lower().replace(phrase, "").capitalize()
         
-        # FIXED: Save ONLY role/content - NO DATE
+        # FIXED: Save safely
         clean_messages.append({"role": "assistant", "content": Answer})
         
-        with open(r"Data/ChatLog.json", "w") as f:
-            dump(clean_messages, f, indent=4)
+        try:
+            with open("Data/ChatLog.json", "w") as f:
+                json.dump(clean_messages, f, indent=4)
+        except Exception as e:
+            print(f"Error saving chatlog: {e}")
             
         SystemChatBot.pop()
         return AnswerModifier(Answer)

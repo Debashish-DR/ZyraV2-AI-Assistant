@@ -1,30 +1,65 @@
-
 # Core AI and APIs
-cohere
-groq
-mtranslate
-edge-tts
-requests
-beautifulsoup4
-
-# Chatbot and automation
-pygame
-comtypes
+cohere==4.56.0
+groq==0.9.0
+mtranslate==1.8
+requests==2.31.0
+beautifulsoup4==4.12.2
 
 # Web framework
-flask
-flask-cors
-# Utilities
-pillow
-python-dotenv
+flask==3.0.0
+flask-cors==4.0.0
+python-dotenv==1.0.0
 
-#render deployment
-
+# Database
 pymongo==4.5.0
 PyJWT==2.8.0
 bcrypt==4.0.1
+
+# Server
 gunicorn==21.2.0
-speechrecognition==3.10.0
+
+# Cloud-compatible audio (browser-based)
+# REMOVED: edge-tts, speechrecognition, pygame, comtypes
+
+# Utilities
+pillow==10.2.0
+urllib3==2.0.7
+
+# Add these for better cloud compatibility
+dnspython==2.4.2
+
+
+
+#================================================================================
+
+
+
+# Core AI and APIs
+# cohere
+# groq
+# mtranslate
+# edge-tts
+# requests
+# beautifulsoup4
+
+# # Chatbot and automation
+# pygame
+# comtypes
+
+# # Web framework
+# flask
+# flask-cors
+# # Utilities
+# pillow
+# python-dotenv
+
+# #render deployment
+
+# pymongo==4.5.0
+# PyJWT==2.8.0
+# bcrypt==4.0.1
+# gunicorn==21.2.0
+# speechrecognition==3.10.0
 
 
 

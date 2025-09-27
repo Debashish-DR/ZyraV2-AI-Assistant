@@ -35,10 +35,23 @@ IS_RENDER = os.environ.get('RENDER') is not None
 
 # ---------------------- IMPROVED MONGODB SETUP ---------------------- #
 try:
-    # For Render.com MongoDB
-    client = pymongo.MongoClient(MONGODB_URI, serverSelectionTimeoutMS=10000)
+    # For Render.com MongoDB Atlas
+    if IS_RENDER:
+        # Use Render's environment variable
+        MONGODB_URI = os.environ.get('MONGODB_URI')
+        if not MONGODB_URI:
+            print("❌ MONGODB_URI not found in environment variables")
+            raise Exception("MongoDB URI not configured")
+    else:
+        # Local development
+        MONGODB_URI = env_vars.get("MONGODB_URI")
     
-    # Test connection with longer timeout
+    if not MONGODB_URI:
+        raise Exception("MongoDB URI not configured")
+    
+    client = pymongo.MongoClient(MONGODB_URI, serverSelectionTimeoutMS=30000)
+    
+    # Test connection
     client.admin.command('ping')
     db = client['ai_assistant']
     users = db['users']
@@ -52,20 +65,10 @@ try:
     
     print("✅ MongoDB connected successfully")
     print(f"✅ Database: {db.name}")
-    print(f"✅ Collections: {db.list_collection_names()}")
     
-except pymongo.errors.ServerSelectionTimeoutError as e:
-    print(f"❌ MongoDB connection timeout: {e}")
-    client = None
-    db = None
-    users = None
-except pymongo.errors.ConfigurationError as e:
-    print(f"❌ MongoDB configuration error: {e}")
-    client = None
-    db = None
-    users = None
 except Exception as e:
     print(f"❌ MongoDB connection error: {e}")
+    print("🔄 Using fallback file-based storage")
     client = None
     db = None
     users = None
@@ -352,8 +355,8 @@ def login():
         
         # Check if MongoDB is connected
         if users is None:
-            print("❌ MongoDB not connected")
-            return jsonify({'error': 'Database connection failed. Please try again later.'}), 500
+            print("❌ MongoDB not connected - using fallback")
+            return jsonify({'error': 'Service temporarily unavailable. Please try again.'}), 503
         
         # Find user
         user = users.find_one({'email': email})
@@ -366,7 +369,6 @@ def login():
         # Verify password
         try:
             password_valid = bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8'))
-            print(f"🔐 Password valid: {password_valid}")
         except Exception as e:
             print(f"❌ Password check error: {e}")
             return jsonify({'error': 'Authentication error'}), 500
@@ -374,13 +376,6 @@ def login():
         if not password_valid:
             print("❌ Invalid password")
             return jsonify({'error': 'Invalid email or password'}), 401
-        
-        # Update username if provided and different
-        if username and username != user.get('username'):
-            users.update_one({'email': email}, {'$set': {'username': username}})
-        
-        # Initialize user-specific chatlog if not exists
-        ShowDefaultChatIfNoChats(email)
         
         # Generate JWT token
         token = jwt.encode({
@@ -392,7 +387,7 @@ def login():
         
         return jsonify({
             'token': token,
-            'username': username or user.get('username', 'User'),
+            'username': user.get('username', 'User'),
             'assistantname': user.get('assistantname', 'Zyra'),
             'assistantvoice': user.get('assistantvoice', 'en-CA-ClaraNeural'),
             'message': 'Login successful'
@@ -400,7 +395,7 @@ def login():
         
     except Exception as e:
         print(f"❌ Login error: {e}")
-        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+        return jsonify({'error': 'Internal server error. Please try again.'}), 500
 
 @app.route('/api/forgot', methods=['POST'])
 def forgot_password():

@@ -1,3 +1,4 @@
+
 from groq import Groq
 from json import load, dump
 import datetime
@@ -25,14 +26,26 @@ def load_env_vars():
 
 GroqAPIKey, MONGODB_URI = load_env_vars()
 
-# Initialize clients only if API keys are available
-if GroqAPIKey:
-    client = Groq(api_key=GroqAPIKey)
-    print("✅ Groq client initialized successfully")
-else:
-    client = None
-    print("⚠️ GroqAPIKey not set - AI features disabled")
+# FIXED: Safer Groq client initialization
+def get_groq_client():
+    """Safely initialize Groq client with error handling"""
+    if not GroqAPIKey:
+        print("⚠️ GroqAPIKey not set - AI features disabled")
+        return None
+    
+    try:
+        # Use a simpler initialization approach
+        client = Groq(api_key=GroqAPIKey)
+        print("✅ Groq client initialized successfully")
+        return client
+    except Exception as e:
+        print(f"❌ Groq client initialization failed: {e}")
+        return None
 
+# Initialize clients safely
+client = get_groq_client()
+
+# Rest of your existing Chatbot.py code remains the same...
 if MONGODB_URI:
     try:
         mongo_client = pymongo.MongoClient(MONGODB_URI)
@@ -203,7 +216,6 @@ def ChatBot(Query, username, assistantname):
                 return f"{message}\n\n💡 *In the meantime, try commands like 'open youtube' or 'play music'*"
         
         return "❌ Sorry, I encountered an error processing your request. Please try again."
-
 
 
 

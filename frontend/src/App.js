@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState, useEffect, useRef, createContext } from 'react'; // REMOVED useCallback
+import { useState, useEffect, useRef, createContext } from 'react';
 import axios from 'axios';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -30,31 +30,51 @@ function App() {
   const [isMuted, setIsMuted] = useState(false);
   const currentAudioRef = useRef(null);
 
-  // Set axios defaults
+  // Set authentication state from localStorage on app start
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    const email = localStorage.getItem('email');
+    
+    if (token && email) {
       setIsAuthenticated(true);
+      console.log('✅ User authenticated from localStorage');
+    } else {
+      setIsAuthenticated(false);
+      console.log('🔐 No authentication found in localStorage');
     }
-    // Dynamic baseURL based on environment
-    axios.defaults.baseURL = process.env.NODE_ENV === 'production' 
-      ? 'https://zyra-backend.onrender.com' 
-      : 'http://localhost:5000';
   }, []);
+
   const fetchChatlog = async () => {
-  try {
-    // CHANGE: Use POST method with email parameter
-    const email = localStorage.getItem('email') || '';
-    const res = await axios.post('/api/get-chatlog', { email });
-    if (res.data && res.data.chatlog) {
-      setChatlogCache(res.data.chatlog);
+    try {
+      const email = localStorage.getItem('email') || '';
+      if (!email) {
+        console.log('❌ No email found for chatlog fetch');
+        setChatlogCache([]);
+        return;
+      }
+
+      console.log('📖 Fetching chatlog for:', email);
+      const res = await axios.post('/api/get-chatlog', { email });
+      
+      if (res.data && res.data.chatlog) {
+        console.log('✅ Chatlog fetched successfully, messages:', res.data.chatlog.length);
+        setChatlogCache(res.data.chatlog);
+      } else {
+        console.log('⚠️ No chatlog data received');
+        setChatlogCache([]);
+      }
+    } catch (err) {
+      console.error('❌ Chatlog fetch error:', err);
+      // Initialize with welcome message if chatlog fails
+      const welcomeMsg = {
+        role: 'assistant',
+        content: "Hello! I'm Zyra, your virtual assistant. How can I help you today?",
+        date: new Date().toISOString(),
+        id: generateMessageId()
+      };
+      setChatlogCache([welcomeMsg]);
     }
-  } catch (err) {
-    console.error('Chatlog fetch error:', err);
-    setChatlogCache([]);
-  }
-};
+  };
 
   const stopCurrentAudio = () => {
     if (currentAudioRef.current) {
@@ -76,6 +96,7 @@ function App() {
     setIsMicOn(false);
   };
 
+  // Auto-reset status after processing
   useEffect(() => {
     if (status === 'Answering ...') {
       const timer = setTimeout(() => {
@@ -87,6 +108,7 @@ function App() {
     }
   }, [status, isProcessing, isMicOn]);
 
+  // Cleanup audio on page unload
   useEffect(() => {
     const handleBeforeUnload = () => {
       stopCurrentAudio();
@@ -100,21 +122,29 @@ function App() {
     };
   }, []);
 
+  // Fetch user settings and initialize chat
   useEffect(() => {
     const fetchUserSettings = async () => {
       const email = localStorage.getItem('email');
       const token = localStorage.getItem('token');
       
       if (!email || !token) {
+        console.log('❌ No email or token found for settings fetch');
         setIsAuthenticated(false);
         return;
       }
       
       try {
+        console.log('⚙️ Fetching user settings for:', email);
         const res = await axios.post('/api/get-user-settings', { email });
+        
+        if (!res.data) {
+          throw new Error('No data received from server');
+        }
+
         const userData = {
           email,
-          username: res.data.username || '',
+          username: res.data.username || 'User',
           assistantname: res.data.assistantname || 'Zyra',
           assistantvoice: res.data.assistantvoice || 'en-CA-ClaraNeural'
         };
@@ -124,8 +154,10 @@ function App() {
           name: res.data.assistantname || 'Zyra',
           voice: res.data.assistantvoice || 'en-CA-ClaraNeural'
         });
-        
-        // Welcome message logic
+
+        console.log('✅ User settings loaded:', userData);
+
+        // Welcome message logic - only show once per session
         const welcomeShown = sessionStorage.getItem('welcomeShown');
         if (!welcomeShown) {
           const welcomeMsg = `Hello, I'm ${userData.assistantname}, your virtual assistant. How can I help you today?`;
@@ -140,44 +172,89 @@ function App() {
           sessionStorage.setItem('welcomeShown', 'true');
           setStatus('Answering ...');
           
+          // Play welcome audio if not muted
           if (!isMuted) {
             try {
+              console.log('🔊 Playing welcome audio');
               const audioRes = await axios.post('/api/text-to-speech', 
                 { text: welcomeMsg, email: userData.email }, 
-                { responseType: 'blob' }
+                { responseType: 'blob', timeout: 10000 }
               );
-              const audioUrl = URL.createObjectURL(audioRes.data);
-              const audio = new Audio(audioUrl);
-              window.currentAudio = audio;
-              audio.play();
+              
+              if (audioRes.data) {
+                const audioUrl = URL.createObjectURL(audioRes.data);
+                const audio = new Audio(audioUrl);
+                window.currentAudio = audio;
+                
+                audio.onended = () => {
+                  console.log('✅ Welcome audio finished playing');
+                  setStatus('Available');
+                };
+                
+                audio.play().catch(e => {
+                  console.error('❌ Audio play error:', e);
+                  setStatus('Available');
+                });
+              }
             } catch (audioError) {
-              console.error('Welcome audio error:', audioError);
+              console.error('❌ Welcome audio error:', audioError);
+              setStatus('Available');
             }
+          } else {
+            setStatus('Available');
           }
         }
         
-        // Load chatlog after settings
-        fetchChatlog();
+        // Load existing chatlog
+        await fetchChatlog();
         setIsAuthenticated(true);
         
       } catch (err) {
-        console.error('Settings error:', err);
+        console.error('❌ Settings fetch error:', err);
+        
         if (err.response?.status === 401) {
+          console.log('🔐 Unauthorized - clearing tokens');
           localStorage.removeItem('email');
           localStorage.removeItem('token');
           sessionStorage.clear();
           setIsAuthenticated(false);
+        } else {
+          // Network or server error - try to continue with default settings
+          console.log('🔄 Using default settings due to server error');
+          const defaultUserData = {
+            email: email,
+            username: 'User',
+            assistantname: 'Zyra',
+            assistantvoice: 'en-CA-ClaraNeural'
+          };
+          
+          setUser(defaultUserData);
+          setAssistant({
+            name: 'Zyra',
+            voice: 'en-CA-ClaraNeural'
+          });
+          
+          // Initialize with welcome message
+          const welcomeMsg = {
+            role: 'assistant',
+            content: "Hello! I'm Zyra, your virtual assistant. How can I help you today?",
+            date: new Date().toISOString(),
+            id: generateMessageId()
+          };
+          setChatlogCache([welcomeMsg]);
         }
         setStatus('Available');
       }
     };
     
     if (isAuthenticated) {
+      console.log('🔐 App is authenticated, fetching settings...');
       fetchUserSettings();
     }
   }, [isAuthenticated, isMuted]);
 
   const logout = () => {
+    console.log('🚪 User logging out');
     localStorage.removeItem('email');
     localStorage.removeItem('token');
     sessionStorage.clear();
@@ -188,10 +265,17 @@ function App() {
     setIsMicOn(false);
     setIsMuted(false);
     stopCurrentAudio();
+    setStatus('Available');
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, isAuthenticated, setIsAuthenticated, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      setUser, 
+      isAuthenticated, 
+      setIsAuthenticated, 
+      logout 
+    }}>
       <AssistantContext.Provider value={{ 
         assistant, 
         setAssistant, 
@@ -211,16 +295,20 @@ function App() {
         fetchChatlog
       }}>
         <Router>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot" element={<ForgotPassword />} />
-            <Route path="/reset" element={<ResetPassword />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/history" element={<History />} />
-          </Routes>
+          <div className="App">
+            <Routes>
+              <Route path="/" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot" element={<ForgotPassword />} />
+              <Route path="/reset" element={<ResetPassword />} />
+              <Route path="/settings" element={isAuthenticated ? <Settings /> : <Login />} />
+              <Route path="/home" element={isAuthenticated ? <Home /> : <Login />} />
+              <Route path="/chat" element={isAuthenticated ? <Chat /> : <Login />} />
+              <Route path="/history" element={isAuthenticated ? <History /> : <Login />} />
+              {/* Redirect unknown routes to login */}
+              <Route path="*" element={<Login />} />
+            </Routes>
+          </div>
         </Router>
       </AssistantContext.Provider>
     </AuthContext.Provider>

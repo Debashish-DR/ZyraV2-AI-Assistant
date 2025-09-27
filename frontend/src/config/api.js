@@ -1,18 +1,29 @@
 import axios from 'axios';
 
-// API configuration - Use your exact backend URL
-const API_BASE_URL = 'https://zyra-backend-f7qj.onrender.com';
+// Dynamic API configuration based on environment
+const getApiBaseUrl = () => {
+    // If we're in production (Render) use the actual backend URL
+    if (process.env.NODE_ENV === 'production') {
+        return 'https://zyra-backend-f7qj.onrender.com';
+    }
+    // For development, use localhost
+    return 'http://localhost:5000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+console.log(`🌐 API Base URL: ${API_BASE_URL}`);
 
 // Create axios instance with configuration
 const api = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 15000, // Increased timeout for better reliability
+    timeout: 30000, // 30 seconds timeout
     headers: {
         'Content-Type': 'application/json',
     }
 });
 
-// Request interceptor to add auth token and log requests
+// Request interceptor
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
@@ -20,12 +31,7 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
         
-        // Log request for debugging
-        console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-            data: config.data,
-            headers: config.headers
-        });
-        
+        console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
     },
     (error) => {
@@ -34,28 +40,24 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor for error handling and logging
+// Response interceptor
 api.interceptors.response.use(
     (response) => {
-        // Log successful response
-        console.log(`✅ API Response: ${response.status} ${response.config.url}`, response.data);
+        console.log(`✅ API Response: ${response.status} ${response.config.url}`);
         return response;
     },
     (error) => {
-        // Log error response
-        console.error('❌ API Error Response:', {
+        console.error('❌ API Error:', {
             url: error.config?.url,
-            method: error.config?.method,
             status: error.response?.status,
-            data: error.response?.data,
             message: error.message
         });
         
+        // Handle unauthorized errors
         if (error.response?.status === 401) {
-            console.log('🔐 Unauthorized - Clearing tokens');
             localStorage.removeItem('token');
             localStorage.removeItem('email');
-            // Redirect to login page
+            // Redirect to login if not already there
             if (window.location.pathname !== '/') {
                 window.location.href = '/';
             }

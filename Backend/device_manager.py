@@ -3,11 +3,10 @@ import os
 import subprocess
 import requests
 
-def get_device_type():
+def get_device_type(): 
     try:
         if 'ANDROID_ROOT' in os.environ or 'TERMUX_VERSION' in os.environ:
             return "mobile"
-        
         if 'Pythonista' in os.environ:
             return "mobile"
             

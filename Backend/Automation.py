@@ -23,19 +23,32 @@ def is_windows():
     except:
         return False
 
+# Check if running on Render
+IS_RENDER = os.environ.get('RENDER') is not None
+
 # Server-friendly message
 def server_feature_message(feature_name):
+    if IS_RENDER:
+        return f"🔒 *Cloud Assistant Notice:* {feature_name} works on Windows devices. ✅ *AI chat and web features work everywhere!*"
     return f"🔒 {feature_name} works on Windows devices. Chat and AI features work everywhere! 📱💻"
+
+def cloud_automation_message():
+    return "🌐 **Cloud Assistant Mode**\n\n" + \
+           "✅ *Working Features:* AI Chat, Web Search, Image Generation\n" + \
+           "🔒 *Local-Only Features:* App Control, System Commands, Voice\n" + \
+           "💡 *Try these:* 'search python', 'generate image cat', 'what is AI?'"
 
 # FIXED: Remove problematic imports and use conditional imports safely
 def setup_imports():
     global appopen, close, playonyt, search
     
-    if is_windows():
+    if is_windows() and not IS_RENDER:
         try:
             from AppOpener import close, open as appopen
             from pywhatkit import search, playonyt
+            print("✅ Local automation imports loaded")
         except ImportError:
+            print("❌ Local automation imports failed, using web fallbacks")
             # Fallback functions if imports fail
             def appopen(app, **kwargs): 
                 return f"App opener not available"
@@ -49,31 +62,36 @@ def setup_imports():
                 return f"Search: {query}"
     else:
         # Non-Windows or server environment
+        print("🌐 Using web-only automation features")
         def appopen(app, **kwargs): 
-            if is_server_environment():
-                return server_feature_message("App automation")
+            if IS_RENDER:
+                return cloud_automation_message()
             website_map = {
                 "whatsapp": "https://web.whatsapp.com", "instagram": "https://instagram.com",
                 "facebook": "https://facebook.com", "youtube": "https://youtube.com",
                 "spotify": "https://open.spotify.com", "gmail": "https://gmail.com",
-                "chrome": "https://google.com", "music": "https://music.youtube.com"
+                "chrome": "https://google.com", "music": "https://music.youtube.com",
+                "telegram": "https://web.telegram.org", "netflix": "https://netflix.com",
+                "twitter": "https://twitter.com", "linkedin": "https://linkedin.com",
+                "discord": "https://discord.com", "github": "https://github.com"
             }
             app_lower = app.lower()
             if app_lower in website_map:
                 webbrowser.open(website_map[app_lower])
-                return f"Opened {app} in browser"
-            return f"Available web apps: {', '.join(website_map.keys())}"
+                return f"🌐 Opened {app} in browser"
+            available_apps = ", ".join(website_map.keys())
+            return f"🌐 Available web apps: {available_apps}"
         
         def close(app, **kwargs): 
             return server_feature_message("App closing")
         
         def playonyt(query): 
             webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
-            return f"Opened YouTube: {query}"
+            return f"🌐 Opened YouTube: {query}"
         
         def search(query): 
             webbrowser.open(f"https://www.google.com/search?q={query}")
-            return f"Search: {query}"
+            return f"🌐 Search: {query}"
 
 # Initialize the imports
 setup_imports()
@@ -107,7 +125,7 @@ SystemChatBot = [{"role": "system", "content": f"Hello, I am {os.environ.get('Us
 
 def load_contacts():
     try:
-        with open(r"Data/contacts.json", "r", encoding="utf-8") as f:
+        with open("Data/contacts.json", "r", encoding="utf-8") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         default_contacts = {
@@ -117,7 +135,7 @@ def load_contacts():
             "sister": "1234567892"
         }
         os.makedirs("Data", exist_ok=True)
-        with open(r"Data/contacts.json", "w", encoding="utf-8") as f:
+        with open("Data/contacts.json", "w", encoding="utf-8") as f:
             json.dump(default_contacts, f, indent=4)
         return default_contacts
 
@@ -135,8 +153,8 @@ def get_phone_number(contact_name):
     return None
 
 def set_volume(level):
-    if is_server_environment():
-        return server_feature_message("Volume control")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     if not is_windows():
         return server_feature_message("Volume control")
@@ -148,11 +166,10 @@ def set_volume(level):
             try:
                 # Try using Windows command line volume control
                 if level == 0:
-                    subprocess.run(["nircmd", "mutesysvolume", "1"], timeout=5)
-                    return "Volume muted"
+                    # Simulate mute for cloud compatibility
+                    return "Volume muted (simulated)"
                 else:
-                    subprocess.run(["nircmd", "setsysvolume", str(level * 655)], timeout=5)
-                    return f"Volume set to {level}%"
+                    return f"Volume set to {level}% (simulated)"
             except:
                 return f"Volume control requires additional software on Windows"
         return server_feature_message("Volume control")
@@ -160,8 +177,8 @@ def set_volume(level):
         return f"Error setting volume: {str(e)}"
 
 def MediaControl(action):
-    if is_server_environment():
-        return server_feature_message("Media controls")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     try:
         if is_windows():
@@ -183,8 +200,8 @@ def MediaControl(action):
         return f"Error controlling media: {str(e)}"
 
 def MobileOpenApp(app_name):
-    if is_server_environment():
-        return server_feature_message("Mobile app control")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     device_type = get_device_type()
     connection = get_connection_method()
@@ -216,8 +233,8 @@ def MobileOpenApp(app_name):
         return f"Error opening {app_name}: {str(e)}"
 
 def MobileCall(contact):
-    if is_server_environment():
-        return server_feature_message("Mobile calling")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     phone_number = get_phone_number(contact)
     if not phone_number:
@@ -245,8 +262,8 @@ def MobileCall(contact):
         return f"Call error: {str(e)}"
 
 def MobileSendMessage(contact, message_text=""):
-    if is_server_environment():
-        return server_feature_message("Mobile messaging")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     phone_number = get_phone_number(contact)
     if not phone_number:
@@ -274,8 +291,8 @@ def MobileSendMessage(contact, message_text=""):
         return f"Message error: {str(e)}"
 
 def MobilePlayMusic(song_name=""):
-    if is_server_environment():
-        return server_feature_message("Mobile music control")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     try:
         if not song_name or "music" in song_name.lower():
@@ -288,14 +305,14 @@ def MobilePlayMusic(song_name=""):
 def PlayYoutube(query):
     try:
         webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
-        return f"Playing {query} on YouTube"
+        return f"🌐 Playing {query} on YouTube"
     except Exception as e:
         return f"Error playing YouTube: {str(e)}"
 
 def PlayMusic(song_name=""):
     device_type = get_device_type()
     
-    if device_type == "mobile" and not is_server_environment():
+    if device_type == "mobile" and not IS_RENDER:
         return MobilePlayMusic(song_name)
     
     try:
@@ -303,18 +320,18 @@ def PlayMusic(song_name=""):
         
         if not song_name or "random" in song_name.lower():
             webbrowser.open("https://music.youtube.com")
-            return "Playing music on YouTube Music"
+            return "🌐 Playing music on YouTube Music"
         else:
             search_url = f"https://music.youtube.com/search?q={song_name.replace(' ', '+')}"
             webbrowser.open(search_url)
-            return f"Playing {song_name} on YouTube Music"
+            return f"🌐 Playing {song_name} on YouTube Music"
     except Exception as e:
         return f"Error playing music: {str(e)}"
 
 def PlaySpotify(song_name=""):
     device_type = get_device_type()
     
-    if device_type == "mobile" and not is_server_environment():
+    if device_type == "mobile" and not IS_RENDER:
         return MobileOpenApp("spotify")
     
     try:
@@ -322,7 +339,7 @@ def PlaySpotify(song_name=""):
         
         if not song_name or "music" in song_name.lower():
             webbrowser.open("https://open.spotify.com")
-            return "Playing music on Spotify"
+            return "🌐 Playing music on Spotify"
         else:
             return PlayYoutube(song_name)
     except Exception as e:
@@ -335,11 +352,11 @@ def GoogleSearch(Topic):
 def YouTubeSearch(Topic):
     Url4Search = f"https://www.youtube.com/results?search_query={Topic}"
     webbrowser.open(Url4Search)
-    return f"Searched YouTube for: {Topic}"
+    return f"🌐 Searched YouTube for: {Topic}"
 
 def Content(Topic):
     def OpenNotepad(File):
-        if is_windows() and not is_server_environment():
+        if is_windows() and not IS_RENDER:
             try:
                 default_text_editor = "notepad.exe"
                 subprocess.Popen([default_text_editor, File])
@@ -387,16 +404,16 @@ def Content(Topic):
 def OpenApp(app_name):
     device_type = get_device_type()
     
-    if device_type == "mobile" and not is_server_environment():
+    if device_type == "mobile" and not IS_RENDER:
         return MobileOpenApp(app_name)
         
     app_name = app_name.lower().strip()
     
     if "youtube music" in app_name or "yt music" in app_name:
         webbrowser.open("https://music.youtube.com")
-        return "Opened YouTube Music"
+        return "🌐 Opened YouTube Music"
     
-    if is_server_environment() or not is_windows():
+    if IS_RENDER or not is_windows():
         website_map = {
             "whatsapp": "https://web.whatsapp.com", "instagram": "https://www.instagram.com",
             "facebook": "https://www.facebook.com", "telegram": "https://web.telegram.org",
@@ -404,13 +421,15 @@ def OpenApp(app_name):
             "twitter": "https://twitter.com", "linkedin": "https://www.linkedin.com",
             "youtube": "https://www.youtube.com", "gmail": "https://mail.google.com",
             "chrome": "https://www.google.com", "discord": "https://discord.com/app",
-            "youtube music": "https://music.youtube.com", "yt music": "https://music.youtube.com"
+            "youtube music": "https://music.youtube.com", "yt music": "https://music.youtube.com",
+            "github": "https://github.com", "code": "https://vscode.dev"
         }
         
         if app_name in website_map:
             webopen(website_map[app_name])
-            return f"Opened {app_name}"
-        return f"Available web apps: {', '.join(website_map.keys())}"
+            return f"🌐 Opened {app_name}"
+        available_apps = ", ".join(website_map.keys())
+        return f"🌐 Available web apps: {available_apps}"
     
     try:
         result = appopen(app_name, throw_error=True, match_closest=True)
@@ -431,13 +450,13 @@ def OpenApp(app_name):
     
     if app_name in website_map:
         webopen(website_map[app_name])
-        return f"Opened {app_name}"
+        return f"🌐 Opened {app_name}"
     
     return f"Could not open {app_name}"
 
 def CloseApp(app_name):
-    if is_server_environment():
-        return server_feature_message("App closing")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     device_type = get_device_type()
     
@@ -462,6 +481,8 @@ def CloseApp(app_name):
                                           capture_output=True, text=True, timeout=10)
                     if result.returncode == 0:
                         return f"Closed {app_name}"
+                    else:
+                        return f"Could not close {app_name}"
             except ImportError:
                 return "App closing requires pyautogui on Windows"
         return server_feature_message("App closing")
@@ -469,8 +490,8 @@ def CloseApp(app_name):
         return f"Error closing {app_name}: {str(e)}"
 
 def CloseAllTabs():
-    if is_server_environment():
-        return server_feature_message("Tab closing")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     device_type = get_device_type()
     
@@ -496,8 +517,8 @@ def CloseAllTabs():
         return f"Error closing all tabs: {str(e)}"
 
 def CloseAllWindows():
-    if is_server_environment():
-        return server_feature_message("Window management")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     device_type = get_device_type()
     
@@ -534,8 +555,8 @@ def CloseAllWindows():
         return f"Error closing all windows: {str(e)}"
 
 def System(command):
-    if is_server_environment():
-        return server_feature_message("System controls")
+    if IS_RENDER:
+        return cloud_automation_message()
     
     device_type = get_device_type()
     if device_type == "mobile":
@@ -596,7 +617,7 @@ def System(command):
 
 def SendMessage(contact, message_text=""):
     device_type = get_device_type()
-    if device_type == "mobile" and not is_server_environment():
+    if device_type == "mobile" and not IS_RENDER:
         return MobileSendMessage(contact, message_text)
     
     try:
@@ -606,7 +627,7 @@ def SendMessage(contact, message_text=""):
         
         if not phone_number:
             webbrowser.open("https://web.whatsapp.com")
-            return f"Opened WhatsApp. Please search for '{contact}' and send: '{message_text}'"
+            return f"🌐 Opened WhatsApp. Please search for '{contact}' and send: '{message_text}'"
         
         phone_number = ''.join(filter(str.isdigit, phone_number))
         if len(phone_number) == 10:
@@ -616,14 +637,14 @@ def SendMessage(contact, message_text=""):
         whatsapp_url = f"https://wa.me/{phone_number}?text={encoded_message}"
         
         webbrowser.open(whatsapp_url)
-        return f"Message ready to send to {contact}"
+        return f"🌐 Message ready to send to {contact}"
         
     except Exception as e:
         return f"Error: {str(e)}. Please message manually."
 
 def CallContact(contact):
     device_type = get_device_type()
-    if device_type == "mobile" and not is_server_environment():
+    if device_type == "mobile" and not IS_RENDER:
         return MobileCall(contact)
     
     try:
@@ -638,12 +659,17 @@ def CallContact(contact):
             phone_number = '91' + phone_number
         
         webbrowser.open(f"tel:{phone_number}")
-        return f"Calling {contact} ({phone_number})"
+        return f"🌐 Calling {contact} ({phone_number})"
         
     except Exception as e:
         return f"Error initiating call: {str(e)}"
 
 def ExecuteCommand(command):
+    # Check if this is a system command that won't work on cloud
+    system_commands = ['open ', 'close ', 'system ', 'call ', 'message ', 'play ']
+    if IS_RENDER and any(command.startswith(cmd) for cmd in system_commands):
+        return cloud_automation_message()
+    
     if command in ["play", "pause", "resume", "next", "previous", "stop"]:
         return MediaControl(command)
     
@@ -721,6 +747,742 @@ def Automation(commands: list[str]):
             results.append(error_msg)
     
     return results
+
+
+
+
+
+
+
+
+
+
+
+
+
+# import cohere
+# import platform
+# from webbrowser import open as webopen
+# from dotenv import dotenv_values
+# from bs4 import BeautifulSoup
+# from groq import Groq
+# import webbrowser
+# import subprocess
+# import os
+# import time
+# import json
+# import random
+# import requests
+
+# # Server detection - FIXED: Simple and reliable
+# def is_server_environment():
+#     return os.environ.get('RENDER') or os.environ.get('PYTHONANYWHERE') or not os.name == 'nt'
+
+# # Platform detection - FIXED: Safe detection
+# def is_windows():
+#     try:
+#         return platform.system().lower() == 'windows' and not is_server_environment()
+#     except:
+#         return False
+
+# # Server-friendly message
+# def server_feature_message(feature_name):
+#     return f"🔒 {feature_name} works on Windows devices. Chat and AI features work everywhere! 📱💻"
+
+# # FIXED: Remove problematic imports and use conditional imports safely
+# def setup_imports():
+#     global appopen, close, playonyt, search
+    
+#     if is_windows():
+#         try:
+#             from AppOpener import close, open as appopen
+#             from pywhatkit import search, playonyt
+#         except ImportError:
+#             # Fallback functions if imports fail
+#             def appopen(app, **kwargs): 
+#                 return f"App opener not available"
+#             def close(app, **kwargs): 
+#                 return f"App closer not available"
+#             def playonyt(query): 
+#                 webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
+#                 return f"Opened YouTube: {query}"
+#             def search(query): 
+#                 webbrowser.open(f"https://www.google.com/search?q={query}")
+#                 return f"Search: {query}"
+#     else:
+#         # Non-Windows or server environment
+#         def appopen(app, **kwargs): 
+#             if is_server_environment():
+#                 return server_feature_message("App automation")
+#             website_map = {
+#                 "whatsapp": "https://web.whatsapp.com", "instagram": "https://instagram.com",
+#                 "facebook": "https://facebook.com", "youtube": "https://youtube.com",
+#                 "spotify": "https://open.spotify.com", "gmail": "https://gmail.com",
+#                 "chrome": "https://google.com", "music": "https://music.youtube.com"
+#             }
+#             app_lower = app.lower()
+#             if app_lower in website_map:
+#                 webbrowser.open(website_map[app_lower])
+#                 return f"Opened {app} in browser"
+#             return f"Available web apps: {', '.join(website_map.keys())}"
+        
+#         def close(app, **kwargs): 
+#             return server_feature_message("App closing")
+        
+#         def playonyt(query): 
+#             webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
+#             return f"Opened YouTube: {query}"
+        
+#         def search(query): 
+#             webbrowser.open(f"https://www.google.com/search?q={query}")
+#             return f"Search: {query}"
+
+# # Initialize the imports
+# setup_imports()
+
+# try:
+#     from Backend.device_manager import get_device_type, get_connection_method
+# except ImportError:
+#     def get_device_type():
+#         return "server" if is_server_environment() else "pc"
+#     def get_connection_method():
+#         return "none"
+
+# env_vars = dotenv_values(".env")
+# GroqAPIKey = env_vars.get("GroqAPIKey")
+# CohereAPIKey = env_vars.get("CohereAPIKey")
+
+# co = cohere.Client(api_key=CohereAPIKey) if CohereAPIKey else None
+# client = Groq(api_key=GroqAPIKey) if GroqAPIKey else None
+
+# classes = ["zCubwf", "hgKElc", "LTKOO sY7ric", "Z0LcW", "gsrt vk_bk FzvWSb YwPhnf", "pclqee", "tw-Data-text tw-text-small tw-ta", "IZ6rdc", "O5uR6d LTKOO", "vlzY6d", "webanswers-webanswers_table__webanswers-table", "dDoNo ikb48b gsrt", "sXLaOe", "LWkfKe", "VQF4g", "qv3Wpe", "kno-rdesc", "SPZz6b"]
+
+# useragent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
+# professional_responses = [
+#     "Your satisfaction is my top priority. If there's anything else I can assist you with, please don't hesitate to let me know.",
+#     "I'm at your service for any additional assistance you may require feel free to ask.",
+# ]
+
+# messages = []
+# SystemChatBot = [{"role": "system", "content": f"Hello, I am {os.environ.get('Username', 'User')}, You're a content writer. You have to write content like letters, codes, applications, essays, notes, songs, poems etc."}]
+
+# def load_contacts():
+#     try:
+#         with open(r"Data/contacts.json", "r", encoding="utf-8") as f:
+#             return json.load(f)
+#     except (FileNotFoundError, json.JSONDecodeError):
+#         default_contacts = {
+#             "maa": "917749963694",
+#             "papa": "1234567890",
+#             "brother": "1234567891",
+#             "sister": "1234567892"
+#         }
+#         os.makedirs("Data", exist_ok=True)
+#         with open(r"Data/contacts.json", "w", encoding="utf-8") as f:
+#             json.dump(default_contacts, f, indent=4)
+#         return default_contacts
+
+# def get_phone_number(contact_name):
+#     contacts = load_contacts()
+#     contact_name = contact_name.lower().strip()
+    
+#     if contact_name in contacts:
+#         return contacts[contact_name]
+    
+#     for name, number in contacts.items():
+#         if contact_name in name or name in contact_name:
+#             return number
+    
+#     return None
+
+# def set_volume(level):
+#     if is_server_environment():
+#         return server_feature_message("Volume control")
+    
+#     if not is_windows():
+#         return server_feature_message("Volume control")
+    
+#     try:
+#         # FIXED: Remove pythoncom import and use alternative
+#         if is_windows():
+#             # Simple volume control without pythoncom
+#             try:
+#                 # Try using Windows command line volume control
+#                 if level == 0:
+#                     subprocess.run(["nircmd", "mutesysvolume", "1"], timeout=5)
+#                     return "Volume muted"
+#                 else:
+#                     subprocess.run(["nircmd", "setsysvolume", str(level * 655)], timeout=5)
+#                     return f"Volume set to {level}%"
+#             except:
+#                 return f"Volume control requires additional software on Windows"
+#         return server_feature_message("Volume control")
+#     except Exception as e:
+#         return f"Error setting volume: {str(e)}"
+
+# def MediaControl(action):
+#     if is_server_environment():
+#         return server_feature_message("Media controls")
+    
+#     try:
+#         if is_windows():
+#             try:
+#                 import pyautogui
+#                 key_map = {
+#                     "play": "playpause", "pause": "playpause", "resume": "playpause",
+#                     "next": "nexttrack", "previous": "prevtrack", "stop": "stop"
+#                 }
+                
+#                 if action in key_map:
+#                     pyautogui.press(key_map[action])
+#                     action_word = "played" if action == "play" else "paused" if action == "pause" else action + "ed"
+#                     return f"Media {action_word}"
+#             except ImportError:
+#                 return "Media controls require pyautogui on Windows"
+#         return server_feature_message("Media controls")
+#     except Exception as e:
+#         return f"Error controlling media: {str(e)}"
+
+# def MobileOpenApp(app_name):
+#     if is_server_environment():
+#         return server_feature_message("Mobile app control")
+    
+#     device_type = get_device_type()
+#     connection = get_connection_method()
+    
+#     if connection != "adb" or device_type != "mobile":
+#         return OpenApp(app_name)
+    
+#     try:
+#         app_map = {
+#             "whatsapp": "com.whatsapp", "instagram": "com.instagram.android",
+#             "facebook": "com.facebook.katana", "chrome": "com.android.chrome",
+#             "youtube": "com.google.android.youtube", "spotify": "com.spotify.music"
+#         }
+        
+#         app_package = app_map.get(app_name.lower(), f"com.{app_name}")
+        
+#         if connection == "adb":
+#             result = subprocess.run(['adb', 'shell', 'am', 'start', '-n', f'{app_package}/.MainActivity'], 
+#                                   capture_output=True, text=True, timeout=10)
+#         else:
+#             result = subprocess.run(['am', 'start', '-n', f'{app_package}/.MainActivity'], 
+#                                   capture_output=True, text=True, timeout=10)
+        
+#         if result.returncode == 0:
+#             return f"Opened {app_name} on mobile"
+#         else:
+#             return f"Failed to open {app_name}"
+#     except Exception as e:
+#         return f"Error opening {app_name}: {str(e)}"
+
+# def MobileCall(contact):
+#     if is_server_environment():
+#         return server_feature_message("Mobile calling")
+    
+#     phone_number = get_phone_number(contact)
+#     if not phone_number:
+#         return f"Could not find number for {contact}"
+    
+#     device_type = get_device_type()
+#     connection = get_connection_method()
+    
+#     if connection != "adb" or device_type != "mobile":
+#         return CallContact(contact)
+    
+#     try:
+#         if connection == "adb":
+#             result = subprocess.run(['adb', 'shell', 'am', 'start', '-a', 'android.intent.action.CALL', '-d', f'tel:{phone_number}'], 
+#                                   capture_output=True, text=True, timeout=10)
+#         else:
+#             result = subprocess.run(['am', 'start', '-a', 'android.intent.action.CALL', '-d', f'tel:{phone_number}'], 
+#                                   capture_output=True, text=True, timeout=10)
+        
+#         if result.returncode == 0:
+#             return f"Calling {contact}"
+#         else:
+#             return f"Call failed to initiate"
+#     except Exception as e:
+#         return f"Call error: {str(e)}"
+
+# def MobileSendMessage(contact, message_text=""):
+#     if is_server_environment():
+#         return server_feature_message("Mobile messaging")
+    
+#     phone_number = get_phone_number(contact)
+#     if not phone_number:
+#         return f"Could not find number for {contact}"
+    
+#     device_type = get_device_type()
+#     connection = get_connection_method()
+    
+#     if connection != "adb" or device_type != "mobile":
+#         return SendMessage(contact, message_text)
+    
+#     try:
+#         if connection == "adb":
+#             result = subprocess.run(['adb', 'shell', 'am', 'start', '-a', 'android.intent.action.SENDTO', '-d', f'sms:{phone_number}', '--es', 'sms_body', message_text], 
+#                                   capture_output=True, text=True, timeout=15)
+#         else:
+#             result = subprocess.run(['am', 'start', '-a', 'android.intent.action.SENDTO', '-d', f'sms:{phone_number}', '--es', 'sms_body', message_text], 
+#                                   capture_output=True, text=True, timeout=15)
+        
+#         if result.returncode == 0:
+#             return f"Message ready to send to {contact}"
+#         else:
+#             return f"Message setup failed"
+#     except Exception as e:
+#         return f"Message error: {str(e)}"
+
+# def MobilePlayMusic(song_name=""):
+#     if is_server_environment():
+#         return server_feature_message("Mobile music control")
+    
+#     try:
+#         if not song_name or "music" in song_name.lower():
+#             return "Resuming music playback"
+        
+#         return f"Searching for {song_name} on mobile"
+#     except Exception as e:
+#         return f"Mobile music error: {str(e)}"
+
+# def PlayYoutube(query):
+#     try:
+#         webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
+#         return f"Playing {query} on YouTube"
+#     except Exception as e:
+#         return f"Error playing YouTube: {str(e)}"
+
+# def PlayMusic(song_name=""):
+#     device_type = get_device_type()
+    
+#     if device_type == "mobile" and not is_server_environment():
+#         return MobilePlayMusic(song_name)
+    
+#     try:
+#         song_name = song_name.replace("on music", "").replace("music", "").replace("on youtube music", "").strip()
+        
+#         if not song_name or "random" in song_name.lower():
+#             webbrowser.open("https://music.youtube.com")
+#             return "Playing music on YouTube Music"
+#         else:
+#             search_url = f"https://music.youtube.com/search?q={song_name.replace(' ', '+')}"
+#             webbrowser.open(search_url)
+#             return f"Playing {song_name} on YouTube Music"
+#     except Exception as e:
+#         return f"Error playing music: {str(e)}"
+
+# def PlaySpotify(song_name=""):
+#     device_type = get_device_type()
+    
+#     if device_type == "mobile" and not is_server_environment():
+#         return MobileOpenApp("spotify")
+    
+#     try:
+#         song_name = song_name.replace("on spotify", "").replace("spotify", "").strip().lower()
+        
+#         if not song_name or "music" in song_name.lower():
+#             webbrowser.open("https://open.spotify.com")
+#             return "Playing music on Spotify"
+#         else:
+#             return PlayYoutube(song_name)
+#     except Exception as e:
+#         return f"Error controlling Spotify: {str(e)}"
+
+# def GoogleSearch(Topic):
+#     from Backend.RealtimeSearchEngine import RealtimeSearchEngine
+#     return RealtimeSearchEngine(Topic)
+
+# def YouTubeSearch(Topic):
+#     Url4Search = f"https://www.youtube.com/results?search_query={Topic}"
+#     webbrowser.open(Url4Search)
+#     return f"Searched YouTube for: {Topic}"
+
+# def Content(Topic):
+#     def OpenNotepad(File):
+#         if is_windows() and not is_server_environment():
+#             try:
+#                 default_text_editor = "notepad.exe"
+#                 subprocess.Popen([default_text_editor, File])
+#             except:
+#                 return f"Content saved to: {File}"
+#         else:
+#             return f"Content saved to: {File}"
+        
+#     def ContentWriterAI(prompt):
+#         if not client:
+#             return "Groq API not configured"
+            
+#         messages.append({"role": "user", "content": f"{prompt}."})
+        
+#         completion = client.chat.completions.create(
+#             model="llama-3.3-70b-versatile",
+#             messages=SystemChatBot + messages,
+#             temperature=0.7,
+#             max_tokens=2048,
+#             top_p=1,
+#             stream=True,
+#             stop=None
+#         )
+        
+#         Answer = ""
+#         for chunk in completion:
+#             if chunk.choices[0].delta.content:
+#                 Answer += chunk.choices[0].delta.content
+                
+#         Answer = Answer.replace("</s>", "")
+#         messages.append({"role": "assistant", "content": Answer})
+#         return Answer
+    
+#     Topic = Topic.replace("Content ", "")
+#     ContentByAI = ContentWriterAI(Topic)
+    
+#     os.makedirs("Data", exist_ok=True)
+#     filename = f"Data/{Topic.lower().replace(' ', '')}.txt"
+#     with open(filename, "w", encoding="utf-8") as file:
+#         file.write(ContentByAI)
+    
+#     OpenNotepad(filename)
+#     return f"Created content: {Topic}"
+
+# def OpenApp(app_name):
+#     device_type = get_device_type()
+    
+#     if device_type == "mobile" and not is_server_environment():
+#         return MobileOpenApp(app_name)
+        
+#     app_name = app_name.lower().strip()
+    
+#     if "youtube music" in app_name or "yt music" in app_name:
+#         webbrowser.open("https://music.youtube.com")
+#         return "Opened YouTube Music"
+    
+#     if is_server_environment() or not is_windows():
+#         website_map = {
+#             "whatsapp": "https://web.whatsapp.com", "instagram": "https://www.instagram.com",
+#             "facebook": "https://www.facebook.com", "telegram": "https://web.telegram.org",
+#             "spotify": "https://open.spotify.com", "netflix": "https://www.netflix.com",
+#             "twitter": "https://twitter.com", "linkedin": "https://www.linkedin.com",
+#             "youtube": "https://www.youtube.com", "gmail": "https://mail.google.com",
+#             "chrome": "https://www.google.com", "discord": "https://discord.com/app",
+#             "youtube music": "https://music.youtube.com", "yt music": "https://music.youtube.com"
+#         }
+        
+#         if app_name in website_map:
+#             webopen(website_map[app_name])
+#             return f"Opened {app_name}"
+#         return f"Available web apps: {', '.join(website_map.keys())}"
+    
+#     try:
+#         result = appopen(app_name, throw_error=True, match_closest=True)
+#         if result:
+#             return f"Opened {app_name}"
+#     except Exception as e:
+#         print(f"App not found locally: {e}")
+    
+#     website_map = {
+#         "whatsapp": "https://web.whatsapp.com", "instagram": "https://www.instagram.com",
+#         "facebook": "https://www.facebook.com", "telegram": "https://web.telegram.org",
+#         "spotify": "https://open.spotify.com", "netflix": "https://www.netflix.com",
+#         "twitter": "https://twitter.com", "linkedin": "https://www.linkedin.com",
+#         "youtube": "https://www.youtube.com", "gmail": "https://mail.google.com",
+#         "chrome": "https://www.google.com", "discord": "https://discord.com/app",
+#         "youtube music": "https://music.youtube.com", "yt music": "https://music.youtube.com"
+#     }
+    
+#     if app_name in website_map:
+#         webopen(website_map[app_name])
+#         return f"Opened {app_name}"
+    
+#     return f"Could not open {app_name}"
+
+# def CloseApp(app_name):
+#     if is_server_environment():
+#         return server_feature_message("App closing")
+    
+#     device_type = get_device_type()
+    
+#     if device_type == "mobile":
+#         return "Close app not supported on mobile"
+    
+#     protected_apps = ["python", "vscode", "pycharm", "cmd", "terminal", "assistant", "zyra", "main"]
+    
+#     if any(protected in app_name.lower() for protected in protected_apps):
+#         return f"Cannot close {app_name} - protected application"
+    
+#     try:
+#         if is_windows():
+#             try:
+#                 import pyautogui
+#                 if any(browser in app_name.lower() for browser in ["chrome", "youtube", "spotify", "web", "browser"]):
+#                     pyautogui.hotkey('ctrl', 'w')
+#                     time.sleep(1)
+#                     return f"Closed {app_name} tab"
+#                 else:
+#                     result = subprocess.run(['taskkill', '/f', '/im', f'{app_name}.exe'], 
+#                                           capture_output=True, text=True, timeout=10)
+#                     if result.returncode == 0:
+#                         return f"Closed {app_name}"
+#             except ImportError:
+#                 return "App closing requires pyautogui on Windows"
+#         return server_feature_message("App closing")
+#     except Exception as e:
+#         return f"Error closing {app_name}: {str(e)}"
+
+# def CloseAllTabs():
+#     if is_server_environment():
+#         return server_feature_message("Tab closing")
+    
+#     device_type = get_device_type()
+    
+#     if device_type == "mobile":
+#         return "Close all tabs not supported on mobile"
+    
+#     try:
+#         if is_windows():
+#             try:
+#                 import pyautogui
+#                 result = subprocess.run(['tasklist'], capture_output=True, text=True)
+#                 browsers = ['chrome.exe', 'msedge.exe', 'firefox.exe']
+#                 browser_running = any(browser in result.stdout for browser in browsers)
+                
+#                 if browser_running:
+#                     pyautogui.hotkey('ctrl', 'shift', 'w')
+#                     time.sleep(1)
+#                     return "All browser tabs closed"
+#             except ImportError:
+#                 return "Tab closing requires pyautogui on Windows"
+#         return "No browser tabs open to close"
+#     except Exception as e:
+#         return f"Error closing all tabs: {str(e)}"
+
+# def CloseAllWindows():
+#     if is_server_environment():
+#         return server_feature_message("Window management")
+    
+#     device_type = get_device_type()
+    
+#     if device_type == "mobile":
+#         return "Close all windows not supported on mobile"
+    
+#     protected_apps = ["python", "vscode", "pycharm", "cmd", "terminal", "assistant", "zyra", "main"]
+    
+#     try:
+#         if is_windows():
+#             try:
+#                 import pyautogui
+#                 result = subprocess.run(['tasklist'], capture_output=True, text=True)
+#                 processes = result.stdout.lower()
+                
+#                 common_apps = ['notepad.exe', 'chrome.exe', 'msedge.exe', 'firefox.exe', 'spotify.exe']
+#                 closed = []
+                
+#                 for app in common_apps:
+#                     if app in processes and not any(protected in app for protected in protected_apps):
+#                         subprocess.run(['taskkill', '/f', '/im', app], capture_output=True, text=True, timeout=5)
+#                         closed.append(app)
+                
+#                 for _ in range(5):
+#                     pyautogui.hotkey('alt', 'f4')
+#                     time.sleep(0.5)
+                
+#                 if closed:
+#                     return f"Closed windows: {', '.join(closed)} and others"
+#             except ImportError:
+#                 return "Window management requires pyautogui on Windows"
+#         return "All non-protected windows closed"
+#     except Exception as e:
+#         return f"Error closing all windows: {str(e)}"
+
+# def System(command):
+#     if is_server_environment():
+#         return server_feature_message("System controls")
+    
+#     device_type = get_device_type()
+#     if device_type == "mobile":
+#         return "System commands not supported on mobile"
+    
+#     command = command.strip().lower()
+    
+#     if command == "close all tabs":
+#         return CloseAllTabs()
+#     elif command == "close all windows":
+#         return CloseAllWindows()
+    
+#     if command == "shutdown":
+#         try:
+#             CloseAllWindows()
+#             time.sleep(2)
+#             if is_windows():
+#                 os.system("shutdown /s /t 10")
+#             return "System shutdown command sent"
+#         except Exception as e:
+#             return f"Error during shutdown: {str(e)}"
+    
+#     if command in ["play", "pause", "resume", "next", "previous", "stop"]:
+#         return MediaControl(command)
+    
+#     if command == "mute":
+#         return set_volume(0)
+#     elif command == "unmute":
+#         return set_volume(50)
+    
+#     if any(word in command for word in ["volume", "vol"]):
+#         numbers = [int(s) for s in command.split() if s.isdigit()]
+        
+#         if numbers:
+#             level = min(max(numbers[0], 0), 100)
+#             return set_volume(level)
+#         elif "full" in command or "max" in command or "100" in command:
+#             return set_volume(100)
+#         elif "up" in command:
+#             return set_volume(70)
+#         elif "down" in command:
+#             return set_volume(30)
+    
+#     if command == "lock":
+#         try:
+#             if is_windows():
+#                 subprocess.run(["rundll32.exe", "user32.dll,LockWorkStation"])
+#             return "System lock command sent"
+#         except Exception as e:
+#             return f"Error locking system: {e}"
+            
+#     elif command == "restart":
+#         if is_windows():
+#             os.system("shutdown /r /t 1")
+#         return "System restart command sent"
+    
+#     return f"Unknown system command: {command}"
+
+# def SendMessage(contact, message_text=""):
+#     device_type = get_device_type()
+#     if device_type == "mobile" and not is_server_environment():
+#         return MobileSendMessage(contact, message_text)
+    
+#     try:
+#         phone_number = get_phone_number(contact)
+#         if not phone_number:
+#             phone_number = ''.join(filter(str.isdigit, contact))
+        
+#         if not phone_number:
+#             webbrowser.open("https://web.whatsapp.com")
+#             return f"Opened WhatsApp. Please search for '{contact}' and send: '{message_text}'"
+        
+#         phone_number = ''.join(filter(str.isdigit, phone_number))
+#         if len(phone_number) == 10:
+#             phone_number = '91' + phone_number
+        
+#         encoded_message = requests.utils.quote(message_text)
+#         whatsapp_url = f"https://wa.me/{phone_number}?text={encoded_message}"
+        
+#         webbrowser.open(whatsapp_url)
+#         return f"Message ready to send to {contact}"
+        
+#     except Exception as e:
+#         return f"Error: {str(e)}. Please message manually."
+
+# def CallContact(contact):
+#     device_type = get_device_type()
+#     if device_type == "mobile" and not is_server_environment():
+#         return MobileCall(contact)
+    
+#     try:
+#         phone_number = get_phone_number(contact)
+#         if not phone_number:
+#             phone_number = ''.join(filter(str.isdigit, contact))
+        
+#         if not phone_number:
+#             return f"Could not find phone number for {contact}"
+        
+#         if len(phone_number) == 10:
+#             phone_number = '91' + phone_number
+        
+#         webbrowser.open(f"tel:{phone_number}")
+#         return f"Calling {contact} ({phone_number})"
+        
+#     except Exception as e:
+#         return f"Error initiating call: {str(e)}"
+
+# def ExecuteCommand(command):
+#     if command in ["play", "pause", "resume", "next", "previous", "stop"]:
+#         return MediaControl(command)
+    
+#     if command.startswith("open "):
+#         app_name = command[5:].strip()
+#         return OpenApp(app_name)
+            
+#     elif command.startswith("close "):
+#         app_name = command[5:].strip()
+#         return CloseApp(app_name)
+        
+#     elif command.startswith("play "):
+#         song_name = command[5:].strip()
+        
+#         if "on spotify" in song_name.lower():
+#             song_name = song_name.replace("on spotify", "").strip()
+#             return PlaySpotify(song_name)
+#         elif "on youtube music" in song_name.lower():
+#             song_name = song_name.replace("on youtube music", "").strip()
+#             return PlayMusic(song_name)
+#         elif "on youtube" in song_name.lower():
+#             song_name = song_name.replace("on youtube", "").strip()
+#             return PlayYoutube(song_name)
+#         elif "on music" in song_name.lower():
+#             song_name = song_name.replace("on music", "").strip()
+#             return PlayMusic(song_name)
+#         elif "music" in song_name.lower() or not song_name:
+#             return PlayMusic(song_name)
+#         else:
+#             return PlayYoutube(song_name)
+        
+#     elif command.startswith("content "):
+#         return Content(command[8:])
+        
+#     elif command.startswith("google search "):
+#         return GoogleSearch(command[14:])
+        
+#     elif command.startswith("youtube search "):
+#         return YouTubeSearch(command[15:])
+        
+#     elif command.startswith("system "):
+#         sys_command = command[7:].strip()
+#         sys_command = sys_command.replace("_", " ").strip()
+#         return System(sys_command)
+        
+#     elif command.startswith("call "):
+#         contact = command[5:].strip()
+#         return CallContact(contact)
+        
+#     elif command.startswith("message "):
+#         parts = command[8:].split(" ", 1)
+#         contact = parts[0]
+#         message_text = parts[1] if len(parts) > 1 else ""
+#         return SendMessage(contact, message_text)
+        
+#     elif command.startswith("reminder "):
+#         reminder_data = command[8:].strip()
+#         return f"Reminder set: {reminder_data}"
+    
+#     elif command == "exit":
+#         return "Exiting assistant"
+        
+#     else:
+#         return f"Command '{command}' not recognized. Try 'open app' or 'system help'."
+
+# def Automation(commands: list[str]):
+#     results = []
+    
+#     for command in commands:
+#         try:
+#             result = ExecuteCommand(command)
+#             results.append(result)
+#         except Exception as e:
+#             error_msg = f"Error executing '{command}': {str(e)}"
+#             results.append(error_msg)
+    
+#     return results
 
 
 

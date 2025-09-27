@@ -5,17 +5,38 @@ services:
     plan: free
     branch: main
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn Backend.main:app
+    startCommand: gunicorn main:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.0
+        value: 3.11.0
+      - key: MONGODB_URI
+        fromDatabase:
+          name: zyra-mongodb
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GroqAPIKey
+        value: your_groq_api_key_here
+      - key: CohereAPIKey
+        value: your_cohere_api_key_here
+      - key: HuggingFaceAPIKey
+        value: your_huggingface_api_key_here
 
-  - type: static
+  - type: web
     name: zyra-frontend
+    env: static
     plan: free
     branch: main
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/build
     envVars:
+      - key: REACT_APP_API_URL
+        value: https://zyra-backend-f7qj.onrender.com  # ✅ FIXED URL
       - key: NODE_VERSION
         value: 18.17.0
+
+databases:
+  - name: zyra-mongodb
+    plan: free
+    type: mongodb
+    version: 6.0

@@ -16,7 +16,9 @@
     "react-router-dom": "^7.9.1",
     "react-scripts": "5.0.1",
     "react-speech-recognition": "^3.10.0",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "lamejs": "^1.2.1",
+    "recordrtc": "^5.6.2"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -48,4 +50,3 @@
     "tailwindcss": "^3.4.17"
   }
 }
-

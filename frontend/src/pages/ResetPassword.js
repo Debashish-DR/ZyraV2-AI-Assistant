@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import api from '../config/api';
 
 function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
@@ -38,7 +38,7 @@ function ResetPassword() {
       return;
     }
     try {
-      await axios.post('/api/reset', { token, new_password: newPassword });
+      await api.post('/api/reset', { token, new_password: newPassword });
       setMessage('Password reset successfully. Please log in.');
       setTimeout(() => navigate('/'), 2000);
     } catch (err) {

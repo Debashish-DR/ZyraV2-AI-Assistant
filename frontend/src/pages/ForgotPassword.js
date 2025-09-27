@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import api from '../config/api';
 
 function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -26,7 +26,7 @@ function ForgotPassword() {
 
   const handleReset = async () => {
     try {
-      await axios.post('/api/forgot', { email });
+      await api.post('/api/forgot', { email });
       setMessage('Password reset link sent to your email.');
       setError('');
     } catch (err) {

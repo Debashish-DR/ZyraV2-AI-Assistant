@@ -1,7 +1,6 @@
 import { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import api from '../config/api';
 import { AuthContext, AssistantContext } from '../App';
 
@@ -35,29 +34,41 @@ function Signup() {
 
   const handleSignup = async () => {
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
+        setError('Passwords do not match');
+        return;
     }
+    setError(''); // Clear previous errors
+        
     try {
-      const res = await api.post('/api/login', { email, password, username });
-      setUser({
-        email,
-        username,
-        assistantname: res.data.assistantname,
-        assistantvoice: res.data.assistantvoice
-      });
-      setAssistant({
-        name: res.data.assistantname,
-        voice: res.data.assistantvoice
-      });
-      localStorage.setItem('email', email);
-      localStorage.setItem('token', res.data.token);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-      navigate('/home');
+        console.log('👤 Signup attempt started...');
+        
+        const res = await api.post('/api/signup', { 
+            email, 
+            password, 
+            username 
+        });
+        
+        console.log('✅ Signup successful:', res.data);
+        
+        setUser({
+            email,
+            username,
+            assistantname: res.data.assistantname,
+            assistantvoice: res.data.assistantvoice
+        });
+        setAssistant({
+            name: res.data.assistantname,
+            voice: res.data.assistantvoice
+        });
+        localStorage.setItem('email', email);
+        localStorage.setItem('token', res.data.token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+        navigate('/home');
     } catch (err) {
-      setError('Signup failed: ' + (err.response?.data?.error || 'Unknown error'));
+        console.error('Signup error:', err.response?.data || err.message);
+        setError(err.response?.data?.error || 'Signup failed. Please check your information and try again.');
     }
-  };
+};
 
   return (
     <motion.div 

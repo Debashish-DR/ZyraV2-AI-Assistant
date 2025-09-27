@@ -32,8 +32,11 @@ function Login() {
   }, []);
 
   const handleLogin = async () => {
+    setError(''); // Clear previous errors
     try {
+      console.log('Login attempt:', { email, password, username });
       const res = await api.post('/api/login', { email, password, username });
+      console.log('✅ Login successful:', res.data);
       setUser({
         email,
         username,

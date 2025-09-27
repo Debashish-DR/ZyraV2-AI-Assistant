@@ -1,31 +1,20 @@
-# Core AI and APIs
-cohere==4.56.0
-groq==0.9.0
-mtranslate==1.8
-requests==2.31.0
-beautifulsoup4==4.12.2
-
-# Web framework
+# Core dependencies
 flask==3.0.0
 flask-cors==4.0.0
 python-dotenv==1.0.0
-
-# Database
 pymongo==4.5.0
 PyJWT==2.8.0
 bcrypt==4.0.1
-
-# Server
 gunicorn==21.2.0
 
-# Cloud-compatible audio (browser-based)
-# REMOVED: edge-tts, speechrecognition, pygame, comtypes
+# AI/ML dependencies
+cohere==4.56.0
+groq==0.9.0
+requests==2.31.0
+beautifulsoup4==4.12.2
 
 # Utilities
 pillow==10.2.0
-urllib3==2.0.7
-
-# Add these for better cloud compatibility
 dnspython==2.4.2
 
 

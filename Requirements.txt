@@ -1,4 +1,3 @@
-
 # Core AI and APIs
 cohere==4.56.0
 groq==0.9.0
@@ -19,15 +18,9 @@ bcrypt==4.0.1
 # Server
 gunicorn==21.2.0
 
-# Cloud-compatible audio (browser-based)
-# REMOVED: edge-tts, speechrecognition, pygame, comtypes
-
-# Utilities
-pillow==10.2.0
+# Utilities - UPDATED VERSION
+pillow==10.4.0
 urllib3==2.0.7
-
-# Add these for better cloud compatibility
-dnspython==2.4.2
 
 
 #================================================================================
